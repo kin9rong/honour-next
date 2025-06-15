@@ -1,103 +1,77 @@
 import Image from "next/image";
+import {fetchHeroList, Hero} from "./api-hero";
+import SlideTabs from "./SlideTabs";
+import SearchInput from "./SearchInput";
 
-export default function Home() {
+// 服务端 HeroList 组件
+const HeroList = async ({searchQuery}: { searchQuery?: string }) => {
+  let heroes: Hero[] = [];
+  try {
+    heroes = await fetchHeroList();
+    // 根据搜索查询过滤英雄
+    if (searchQuery) {
+      const normalizedQuery = searchQuery.toLowerCase().trim();
+      heroes = heroes.filter(
+        (hero) =>
+          hero.cname.toLowerCase().includes(normalizedQuery) ||
+          hero.title.toLowerCase().includes(normalizedQuery)
+      );
+    }
+  } catch (e) {
+    console.error("获取英雄列表失败:", e);
+    return <div className="text-red-500">获取英雄列表失败</div>;
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+      {heroes.length > 0 ? (
+        heroes.map((hero) => (
+          <div
+            key={hero.ename}
+            className="flex flex-col items-center p-4 border rounded-lg bg-white shadow"
           >
             <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+              src={hero.iconUrl}
+              alt={hero.cname}
+              width={80}
+              height={80}
+              className="object-cover rounded-full mb-2"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            <div className="font-bold text-base text-[#333]">{hero.cname}</div>
+            <div className="text-xs text-[#666]">{hero.title}</div>
+          </div>
+        ))
+      ) : (
+        <div className="col-span-full text-center text-gray-500">
+          没有找到匹配的英雄
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      )}
     </div>
   );
-}
+};
+
+// 服务端 SlideTabsExample 组件
+const SlideTabsExample = async ({
+                                  searchParams,
+                                }: {
+  searchParams: Promise<{ search?: string }>;
+}) => {
+  // 等待 searchParams 解析
+  const resolvedSearchParams = await searchParams;
+
+  return (
+    <div className="py-8">
+      <SlideTabs/>
+      {/* 客户端搜索输入 */}
+      <SearchInput/>
+      {/* 服务端英雄列表 */}
+      <HeroList searchQuery={resolvedSearchParams?.search}/>
+    </div>
+  );
+};
+
+// 强制动态渲染
+export const dynamic = "force-dynamic";
+
+// 确保默认导出
+export default SlideTabsExample;
